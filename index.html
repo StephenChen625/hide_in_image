@@ -49,8 +49,21 @@
       box-sizing: border-box;
     }
 
+    .instructions h4 {
+      text-align: center; /* 将 <h4> 元素居中 */
+    }
+
     .instructions h2 {
-      margin-top: 0;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+
+    .instructions ol {
+      padding-left: 20px;
+    }
+
+    .instructions li {
+      margin-bottom: 8px;
     }
 
     /* 文件输入和画布区域 */
@@ -105,6 +118,7 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       max-width: 100%;
       height: auto;
+      touch-action: none; /* 防止触摸滚动 */
     }
 
     /* 控制按钮样式 */
@@ -245,8 +259,9 @@
   <div class="container">
     <!-- 使用说明 -->
     <div class="instructions">
-      <h4 style="text-align: center;">提示：图片中框选位置后，会出现像素值矩阵，这些数字有什么规律？</h4>
-<!--       <ol>
+      <h4>提示：图片中框选位置后，会出现像素值矩阵，这些数字有什么规律？</h4>
+      <!-- <h2>使用说明</h2>
+      <ol>
         <li>点击“选择文件”按钮，加载你想要进行隐写术操作的图片。默认会加载本地的 <code>tree.png</code>。</li>
         <li>加载图片后，可以点击“末位清零”按钮，将图片所有像素的 RGB 通道的末位设置为 0。</li>
         <li>在画布上按下鼠标左键（或触控设备上触摸并按下），拖动以选择一个矩形区域，最大选择范围为 50x50 像素。</li>
@@ -311,7 +326,7 @@
     function loadImage(src) {
       const img = new Image();
       // 移除 crossOrigin，确保本地图片可以正确加载
-      img.crossOrigin = ""; 
+      // img.crossOrigin = ""; // 移除这一行
       img.onload = () => {
         canvas.width = img.width;
         canvas.height = img.height;
@@ -361,8 +376,9 @@
       saveChangesBtn.disabled = false;
     });
 
-    // 框选功能（支持触控板）
+    // 框选功能（支持触控板和触屏）
     canvas.addEventListener("pointerdown", (event) => {
+      event.preventDefault(); // 防止默认行为
       if (!imageData) return;
       isSelecting = true;
       const rect = canvas.getBoundingClientRect();
@@ -377,6 +393,7 @@
     });
 
     canvas.addEventListener("pointermove", (event) => {
+      event.preventDefault(); // 防止默认行为
       if (!isSelecting || !imageData) return;
       const rect = canvas.getBoundingClientRect();
       let endX = event.clientX - rect.left;
@@ -401,7 +418,15 @@
       const x2 = Math.max(startX, endX);
       const y2 = Math.max(startY, endY);
 
-      selection = { x1: Math.floor(x1), y1: Math.floor(y1), x2: Math.floor(x2), y2: Math.floor(y2) };
+      // 确保选择区域不超出图片边界
+      const maxX = imageData.width;
+      const maxY = imageData.height;
+      selection = {
+        x1: Math.floor(Math.min(x1, maxX)),
+        y1: Math.floor(Math.min(y1, maxY)),
+        x2: Math.floor(Math.min(x2, maxX)),
+        y2: Math.floor(Math.min(y2, maxY))
+      };
       drawSelection();
     });
 
@@ -420,6 +445,15 @@
         ctx.strokeStyle = "red";
         ctx.lineWidth = 2;
         ctx.strokeRect(
+          selection.x1,
+          selection.y1,
+          selection.x2 - selection.x1,
+          selection.y2 - selection.y1
+        );
+
+        // 添加半透明填充（可选）
+        ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
+        ctx.fillRect(
           selection.x1,
           selection.y1,
           selection.x2 - selection.x1,
